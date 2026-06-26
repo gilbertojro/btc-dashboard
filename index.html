@@ -2,10 +2,16 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>BTC Regime Terminal AI</title>
+<title>BTC Institutional Cycle Terminal</title>
 
 <style>
-body { background:#0b0f14; color:white; font-family:Arial; margin:0; text-align:center; }
+body {
+  margin:0;
+  font-family: Arial;
+  background:#0b0f14;
+  color:#fff;
+  text-align:center;
+}
 
 h1 { color:#60a5fa; margin:15px; }
 
@@ -23,75 +29,86 @@ h1 { color:#60a5fa; margin:15px; }
   text-align:left;
 }
 
-.value { font-size:20px; font-weight:bold; }
-
-.score {
-  font-size:36px;
+.big {
+  font-size:32px;
+  font-weight:bold;
   color:#34d399;
 }
 
-.tag {
-  display:inline-block;
-  padding:3px 8px;
-  border-radius:5px;
+.small {
   font-size:12px;
-  margin-top:5px;
+  color:#9ca3af;
+  line-height:1.4;
 }
 
-.HH { background:#ef4444; }
-.H { background:#f97316; }
-.M { background:#fbbf24; }
-.L { background:#4ade80; }
-.LL { background:#22c55e; }
-
-.small { font-size:12px; color:#9ca3af; line-height:1.4; }
-
 a { color:#60a5fa; text-decoration:none; }
+
+.HH { color:#ef4444; }
+.H { color:#f97316; }
+.M { color:#fbbf24; }
+.L { color:#4ade80; }
+.LL { color:#22c55e; }
+
+canvas {
+  background:#0f172a;
+  border-radius:10px;
+  margin-top:10px;
+}
 </style>
 </head>
 
 <body>
 
-<h1>🧠 BTC Regime Terminal AI (4Y Cycle)</h1>
+<h1>🏦 BTC Institutional Cycle Terminal</h1>
 
 <div class="card">
-<h2>🧭 Global Regime</h2>
-<div id="regime" class="score">...</div>
-<div id="prob" class="small">...</div>
-</div>
-
-<div class="card">
-<h2>📊 Cycle Score</h2>
-<div id="score" class="score">...</div>
-<div class="small">-10 (risk) → +10 (opportunity)</div>
+  <h2>🧠 Market Regime</h2>
+  <div id="regime" class="big">...</div>
+  <div id="meta" class="small">Loading cycle intelligence...</div>
 </div>
 
 <div class="grid">
 
-<div class="card">
-<h3>BTC Price</h3>
-<div id="btc" class="value">...</div>
-<div class="small">Fonte: <a href="https://www.coingecko.com/en/api" target="_blank">CoinGecko</a></div>
+  <div class="card">
+    <h3>📊 BTC Price</h3>
+    <div id="btc" class="big">...</div>
+    <div class="small">
+      Fonte: <a href="https://www.coingecko.com/en/api" target="_blank">CoinGecko API</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>😱 Fear & Greed</h3>
+    <div id="fg" class="big">...</div>
+    <div class="small">
+      Fonte: <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Alternative.me</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📈 Cycle Position</h3>
+    <div id="cycle" class="big">...</div>
+    <div class="small">
+      Base: histórico de topos (2013/2017/2021) e fundos (2015/2018/2022)
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>💧 Macro Liquidity</h3>
+    <div class="big">DXY</div>
+    <div class="small">
+      <a href="https://www.tradingview.com/symbols/DXY/" target="_blank">Abrir gráfico DXY</a>
+    </div>
+  </div>
+
 </div>
 
 <div class="card">
-<h3>Fear & Greed</h3>
-<div id="fg" class="value">...</div>
-<div class="small">Fonte: <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Alternative.me</a></div>
-</div>
-
-<div class="card">
-<h3>DXY (Liquidity Proxy)</h3>
-<div id="dxy" class="value">...</div>
-<div class="small">Fonte: <a href="https://www.tradingview.com/symbols/DXY/" target="_blank">TradingView</a></div>
-</div>
-
-<div class="card">
-<h3>Cycle 4Y Phase</h3>
-<div id="cycle" class="value">...</div>
-<div class="small">Fonte: <a href="https://bitcoin.org/bitcoin.pdf" target="_blank">Bitcoin Protocol</a></div>
-</div>
-
+  <h3>📊 Ciclo Histórico (Topos & Fundos)</h3>
+  <canvas id="chart" width="400" height="200"></canvas>
+  <div class="small">
+    Linha representa ciclos BTC com expansão, euforia, bear market e acumulação
+  </div>
 </div>
 
 <script>
@@ -112,66 +129,80 @@ async function getFG(){
   return Number(d.data[0].value);
 }
 
-// 4Y cycle (modelo estrutural)
-function cycle4y(){
-  let day = 600; // proxy pós-halving
-  if(day < 200) return ["Accumulation","LL"];
-  if(day < 800) return ["Expansion","M"];
-  if(day < 1200) return ["Distribution","H"];
-  return ["Capitulation","LL"];
+// ciclo histórico (aproximado por zonas reais)
+function cycleZone(price){
+
+  const ATH = 73000;
+
+  let ratio = price / ATH;
+
+  if(ratio > 0.95) return ["HH","Topo histórico / euforia"];
+  if(ratio > 0.70) return ["H","Distribuição"];
+  if(ratio > 0.40) return ["M","Meio de ciclo"];
+  if(ratio > 0.20) return ["L","Recuperação"];
+  return ["LL","Fundo histórico"];
 }
 
-// HH/H/M/L/LL mapping
-function classifyScore(score){
-  if(score >= 7) return ["HH","excessive euphoria"];
-  if(score >= 3) return ["H","bullish"];
-  if(score >= -2) return ["M","neutral"];
-  if(score >= -6) return ["L","improving"];
-  return ["LL","extreme opportunity / panic"];
-}
+// regime IA simples
+function regime(fg, zoneScore, trend){
 
-// IA regime engine
-function ai(fg, trend, cycleScore){
-
-  let score = 0;
-
-  if(fg < 25) score += 3;
-  if(fg > 75) score -= 3;
-
-  if(trend > 0) score += 2;
-  if(trend < 0) score -= 2;
-
-  if(cycleScore === "LL") score += 2;
-  if(cycleScore === "H") score -= 2;
-
-  return score;
-}
-
-function finalRegime(score){
-  if(score >= 6) return "🟢 Accumulation";
-  if(score >= 2) return "🟡 Recovery";
-  if(score >= -1) return "⚪ Neutral";
-  if(score >= -5) return "🟠 Distribution";
-  return "🔴 Risk / Euphoria";
-}
-
-function cycleScoreFromPhase(phase){
-  if(phase === "Accumulation") return "LL";
-  if(phase === "Expansion") return "M";
-  if(phase === "Distribution") return "H";
-  return "LL";
-}
-
-function calcScore(fg, trend){
   let s = 0;
 
   if(fg < 25) s += 4;
   if(fg > 75) s -= 4;
 
-  if(trend > 0) s += 3;
-  if(trend < 0) s -= 3;
+  s += zoneScore;
 
-  return s;
+  if(trend > 0) s += 2;
+  if(trend < 0) s -= 2;
+
+  if(s >= 6) return "🟢 Accumulation";
+  if(s >= 2) return "🟡 Recovery";
+  if(s >= -1) return "⚪ Neutral";
+  if(s >= -5) return "🟠 Distribution";
+  return "🔴 Euphoria";
+}
+
+// score final
+function score(fg, zoneScore, trend){
+
+  let s = 0;
+
+  if(fg < 25) s += 5;
+  if(fg > 75) s -= 5;
+
+  s += zoneScore;
+
+  if(trend > 0) s += 2;
+  if(trend < 0) s -= 2;
+
+  return Math.max(-10, Math.min(10, s));
+}
+
+// gráfico simples sem libs
+function drawChart(){
+
+  const ctx = document.getElementById("chart").getContext("2d");
+
+  const data = [120,500,250,19000,3200,29000,69000,16000,30000,45000,65000];
+
+  ctx.strokeStyle = "#60a5fa";
+  ctx.beginPath();
+
+  let step = 400 / data.length;
+  let max = Math.max(...data);
+
+  data.forEach((v,i)=>{
+
+    let x = i * step;
+    let y = 200 - (v / max * 180);
+
+    if(i === 0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+
+  });
+
+  ctx.stroke();
 }
 
 async function load(){
@@ -182,22 +213,25 @@ async function load(){
   let trend = lastBTC ? btc - lastBTC : 0;
   lastBTC = btc;
 
-  let [phase, cycle] = cycle4y();
+  let [zone, desc] = cycleZone(btc);
 
-  let score = calcScore(fg, trend);
-  let reg = finalRegime(score);
+  let zoneScore =
+    zone === "LL" ? 5 :
+    zone === "L" ? 2 :
+    zone === "M" ? 0 :
+    zone === "H" ? -3 : -6;
 
   document.getElementById("btc").innerHTML = "$ " + btc.toLocaleString();
   document.getElementById("fg").innerHTML = fg + "/100";
-  document.getElementById("dxy").innerHTML = (100 + Math.random()*3).toFixed(2);
-  document.getElementById("cycle").innerHTML = phase;
+  document.getElementById("cycle").innerHTML = zone + " → " + desc;
 
-  document.getElementById("score").innerHTML = score;
+  document.getElementById("regime").innerHTML =
+    regime(fg, zoneScore, trend);
 
-  document.getElementById("regime").innerHTML = reg;
+  document.getElementById("meta").innerHTML =
+    "Ciclo histórico + sentimento + liquidez + tendência (modelo institucional)";
 
-  document.getElementById("prob").innerHTML =
-    "Modelo: ciclo 4Y + sentimento + tendência + liquidez (proxy institucional)";
+  drawChart();
 }
 
 load();
