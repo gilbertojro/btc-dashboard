@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>BTC Dashboard</title>
+
+<style>
+body { background:#0b0f14; color:white; font-family:Arial; text-align:center; }
+.card { background:#111827; margin:15px auto; padding:20px; width:300px; border-radius:10px; }
+h1 { color:#60a5fa; }
+.value { font-size:26px; font-weight:bold; }
+</style>
+</head>
+
+<body>
+
+<h1>📊 BTC Dashboard</h1>
+
+<div class="card">
+<h2>Bitcoin</h2>
+<div id="btc" class="value">...</div>
+</div>
+
+<div class="card">
+<h2>Fear & Greed</h2>
+<div id="fear" class="value">...</div>
+</div>
+
+<script>
+
+// BTC
+async function loadBTC(){
+  try{
+    let r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
+    let d = await r.json();
+    document.getElementById("btc").innerHTML =
+      "$ " + d.bitcoin.usd.toLocaleString();
+  } catch(e){
+    document.getElementById("btc").innerHTML = "erro API";
+  }
+}
+
+// Fear & Greed
+async function loadFear(){
+  try{
+    let r = await fetch("https://api.alternative.me/fng/");
+    let d = await r.json();
+    document.getElementById("fear").innerHTML =
+      d.data[0].value + " / 100";
+  } catch(e){
+    document.getElementById("fear").innerHTML = "erro API";
+  }
+}
+
+loadBTC();
+loadFear();
+
+setInterval(() => {
+  loadBTC();
+  loadFear();
+}, 60000);
+
+</script>
+
+</body>
+</html>
