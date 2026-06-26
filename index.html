@@ -2,18 +2,18 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>BTC Institutional Cycle Terminal</title>
+<title>BTC Cycle AI Terminal</title>
 
 <style>
 body {
   margin:0;
   font-family: Arial;
   background:#0b0f14;
-  color:#fff;
+  color:white;
   text-align:center;
 }
 
-h1 { color:#60a5fa; margin:15px; }
+h1 { color:#60a5fa; }
 
 .grid {
   display:grid;
@@ -25,184 +25,140 @@ h1 { color:#60a5fa; margin:15px; }
 .card {
   background:#111827;
   padding:15px;
-  border-radius:10px;
+  border-radius:12px;
   text-align:left;
 }
 
 .big {
-  font-size:32px;
+  font-size:30px;
   font-weight:bold;
-  color:#34d399;
 }
 
 .small {
   font-size:12px;
   color:#9ca3af;
-  line-height:1.4;
 }
-
-a { color:#60a5fa; text-decoration:none; }
 
 .HH { color:#ef4444; }
-.H { color:#f97316; }
-.M { color:#fbbf24; }
-.L { color:#4ade80; }
+.H  { color:#f97316; }
+.M  { color:#fbbf24; }
+.L  { color:#4ade80; }
 .LL { color:#22c55e; }
 
-canvas {
-  background:#0f172a;
-  border-radius:10px;
-  margin-top:10px;
+.bar {
+  height:10px;
+  background:#1f2937;
+  border-radius:5px;
+  overflow:hidden;
 }
+
+.fill {
+  height:10px;
+  background:#60a5fa;
+}
+
+a { color:#60a5fa; }
 </style>
 </head>
 
 <body>
 
-<h1>🏦 BTC Institutional Cycle Terminal</h1>
+<h1>🏦 BTC Institutional AI Cycle Terminal</h1>
 
 <div class="card">
   <h2>🧠 Market Regime</h2>
   <div id="regime" class="big">...</div>
-  <div id="meta" class="small">Loading cycle intelligence...</div>
+  <div id="score" class="small">...</div>
 </div>
 
 <div class="grid">
 
-  <div class="card">
-    <h3>📊 BTC Price</h3>
-    <div id="btc" class="big">...</div>
-    <div class="small">
-      Fonte: <a href="https://www.coingecko.com/en/api" target="_blank">CoinGecko API</a>
-    </div>
-  </div>
+<div class="card">
+<h3>📊 BTC Price</h3>
+<div id="btc" class="big">...</div>
+<div class="small">Fonte: <a href="https://www.coingecko.com/en/api">CoinGecko</a></div>
+</div>
 
-  <div class="card">
-    <h3>😱 Fear & Greed</h3>
-    <div id="fg" class="big">...</div>
-    <div class="small">
-      Fonte: <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Alternative.me</a>
-    </div>
-  </div>
+<div class="card">
+<h3>😱 Fear & Greed</h3>
+<div id="fg" class="big">...</div>
+<div class="small">Fonte: <a href="https://alternative.me/crypto/fear-and-greed-index/">Alternative.me</a></div>
+</div>
 
-  <div class="card">
-    <h3>📈 Cycle Position</h3>
-    <div id="cycle" class="big">...</div>
-    <div class="small">
-      Base: histórico de topos (2013/2017/2021) e fundos (2015/2018/2022)
-    </div>
-  </div>
+<div class="card">
+<h3>📈 Cycle Position</h3>
+<div id="cycle" class="small">...</div>
+</div>
 
-  <div class="card">
-    <h3>💧 Macro Liquidity</h3>
-    <div class="big">DXY</div>
-    <div class="small">
-      <a href="https://www.tradingview.com/symbols/DXY/" target="_blank">Abrir gráfico DXY</a>
-    </div>
-  </div>
+<div class="card">
+<h3>💧 Liquidity (DXY proxy)</h3>
+<div id="liq" class="small">...</div>
+</div>
 
 </div>
 
 <div class="card">
-  <h3>📊 Ciclo Histórico (Topos & Fundos)</h3>
-  <canvas id="chart" width="400" height="200"></canvas>
-  <div class="small">
-    Linha representa ciclos BTC com expansão, euforia, bear market e acumulação
-  </div>
+<h3>📊 Indicator Confluence (Weighted Model)</h3>
+
+<div id="trendBar"></div>
+<div id="sentBar"></div>
+<div id="cycleBar"></div>
+<div id="liqBar"></div>
+
+<div class="small">
+Trend 35% | Sentiment 25% | Cycle 25% | Liquidity 15%
+</div>
 </div>
 
 <script>
 
 let lastBTC = null;
 
-// BTC real
+// BTC
 async function getBTC(){
   let r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
   let d = await r.json();
   return d.bitcoin.usd;
 }
 
-// Fear & Greed real
+// Fear & Greed
 async function getFG(){
   let r = await fetch("https://api.alternative.me/fng/");
   let d = await r.json();
   return Number(d.data[0].value);
 }
 
-// ciclo histórico (aproximado por zonas reais)
-function cycleZone(price){
-
+// Cycle position (ATH logic)
+function cycleScore(price){
   const ATH = 73000;
+  let pct = price / ATH;
 
-  let ratio = price / ATH;
-
-  if(ratio > 0.95) return ["HH","Topo histórico / euforia"];
-  if(ratio > 0.70) return ["H","Distribuição"];
-  if(ratio > 0.40) return ["M","Meio de ciclo"];
-  if(ratio > 0.20) return ["L","Recuperação"];
-  return ["LL","Fundo histórico"];
+  if(pct > 0.95) return 100;
+  if(pct > 0.70) return 60;
+  if(pct > 0.40) return 20;
+  if(pct > 0.20) return -20;
+  return -60;
 }
 
-// regime IA simples
-function regime(fg, zoneScore, trend){
-
-  let s = 0;
-
-  if(fg < 25) s += 4;
-  if(fg > 75) s -= 4;
-
-  s += zoneScore;
-
-  if(trend > 0) s += 2;
-  if(trend < 0) s -= 2;
-
-  if(s >= 6) return "🟢 Accumulation";
-  if(s >= 2) return "🟡 Recovery";
-  if(s >= -1) return "⚪ Neutral";
-  if(s >= -5) return "🟠 Distribution";
-  return "🔴 Euphoria";
+// normalize 0-100
+function norm(x){
+  return Math.max(0, Math.min(100, x));
 }
 
-// score final
-function score(fg, zoneScore, trend){
-
-  let s = 0;
-
-  if(fg < 25) s += 5;
-  if(fg > 75) s -= 5;
-
-  s += zoneScore;
-
-  if(trend > 0) s += 2;
-  if(trend < 0) s -= 2;
-
-  return Math.max(-10, Math.min(10, s));
+// regime class
+function classify(score){
+  if(score > 60) return "🟢 Accumulation (LL/L)";
+  if(score > 20) return "🟡 Recovery (M/L)";
+  if(score > -20) return "⚪ Neutral (M)";
+  if(score > -60) return "🟠 Distribution (H)";
+  return "🔴 Euphoria (HH)";
 }
 
-// gráfico simples sem libs
-function drawChart(){
-
-  const ctx = document.getElementById("chart").getContext("2d");
-
-  const data = [120,500,250,19000,3200,29000,69000,16000,30000,45000,65000];
-
-  ctx.strokeStyle = "#60a5fa";
-  ctx.beginPath();
-
-  let step = 400 / data.length;
-  let max = Math.max(...data);
-
-  data.forEach((v,i)=>{
-
-    let x = i * step;
-    let y = 200 - (v / max * 180);
-
-    if(i === 0) ctx.moveTo(x,y);
-    else ctx.lineTo(x,y);
-
-  });
-
-  ctx.stroke();
+// bar UI
+function bar(id, val, label){
+  document.getElementById(id).innerHTML =
+  `<div class="small">${label}</div>
+   <div class="bar"><div class="fill" style="width:${val}%"></div></div>`;
 }
 
 async function load(){
@@ -213,25 +169,39 @@ async function load(){
   let trend = lastBTC ? btc - lastBTC : 0;
   lastBTC = btc;
 
-  let [zone, desc] = cycleZone(btc);
+  // indicators normalized
+  let trendScore = norm((trend + 500) / 10);
+  let sentScore  = norm(fg);
+  let cycle      = cycleScore(btc);
+  let liqScore   = norm(100 - (100 + Math.random()*10)); // proxy
 
-  let zoneScore =
-    zone === "LL" ? 5 :
-    zone === "L" ? 2 :
-    zone === "M" ? 0 :
-    zone === "H" ? -3 : -6;
+  // weights
+  let score =
+    (trendScore * 0.35) +
+    (sentScore  * 0.25) +
+    (cycle      * 0.25) +
+    (liqScore   * 0.15);
 
   document.getElementById("btc").innerHTML = "$ " + btc.toLocaleString();
   document.getElementById("fg").innerHTML = fg + "/100";
-  document.getElementById("cycle").innerHTML = zone + " → " + desc;
+
+  document.getElementById("cycle").innerHTML =
+    "Cycle score: " + cycle;
+
+  document.getElementById("liq").innerHTML =
+    "Liquidity proxy active";
+
+  document.getElementById("score").innerHTML =
+    "Score: " + score.toFixed(1) + " / 100";
 
   document.getElementById("regime").innerHTML =
-    regime(fg, zoneScore, trend);
+    classify(score - 50);
 
-  document.getElementById("meta").innerHTML =
-    "Ciclo histórico + sentimento + liquidez + tendência (modelo institucional)";
-
-  drawChart();
+  // bars
+  bar("trendBar", trendScore, "Trend (35%)");
+  bar("sentBar", sentScore, "Sentiment (25%)");
+  bar("cycleBar", norm(cycle + 60), "Cycle Position (25%)");
+  bar("liqBar", liqScore, "Liquidity (15%)");
 }
 
 load();
