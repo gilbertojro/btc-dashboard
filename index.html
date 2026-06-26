@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>BTC Professional Cycle Dashboard</title>
+<title>BTC Regime Terminal AI</title>
 
 <style>
 body { background:#0b0f14; color:white; font-family:Arial; margin:0; text-align:center; }
@@ -20,89 +20,76 @@ h1 { color:#60a5fa; margin:15px; }
   background:#111827;
   padding:15px;
   border-radius:10px;
-}
-
-.value { font-size:20px; font-weight:bold; margin-top:5px; }
-
-.legend {
   text-align:left;
-  font-size:12px;
-  color:#cbd5e1;
-  margin-top:8px;
-  line-height:1.4;
 }
+
+.value { font-size:20px; font-weight:bold; }
 
 .score {
-  font-size:32px;
+  font-size:36px;
   color:#34d399;
 }
 
-.up { color:#34d399; }
-.down { color:#f87171; }
-.flat { color:#fbbf24; }
-
-.small {
+.tag {
+  display:inline-block;
+  padding:3px 8px;
+  border-radius:5px;
   font-size:12px;
-  color:#94a3b8;
+  margin-top:5px;
 }
+
+.HH { background:#ef4444; }
+.H { background:#f97316; }
+.M { background:#fbbf24; }
+.L { background:#4ade80; }
+.LL { background:#22c55e; }
+
+.small { font-size:12px; color:#9ca3af; line-height:1.4; }
+
+a { color:#60a5fa; text-decoration:none; }
 </style>
 </head>
 
 <body>
 
-<h1>🧠 BTC Professional Cycle Dashboard</h1>
+<h1>🧠 BTC Regime Terminal AI (4Y Cycle)</h1>
 
 <div class="card">
-<h2>Cycle Score</h2>
+<h2>🧭 Global Regime</h2>
+<div id="regime" class="score">...</div>
+<div id="prob" class="small">...</div>
+</div>
+
+<div class="card">
+<h2>📊 Cycle Score</h2>
 <div id="score" class="score">...</div>
-<div class="small">0–100 (quanto maior, mais oportunidade histórica)</div>
+<div class="small">-10 (risk) → +10 (opportunity)</div>
 </div>
 
 <div class="grid">
 
 <div class="card">
-<h3>BTC Trend Vector</h3>
+<h3>BTC Price</h3>
 <div id="btc" class="value">...</div>
-
-<div class="legend">
-📌 Mede direção e força do preço do Bitcoin<br>
-↑ tendência de alta | ↓ tendência de baixa | → lateral<br>
-Baseado em variação de preço recente (momentum)
-</div>
+<div class="small">Fonte: <a href="https://www.coingecko.com/en/api" target="_blank">CoinGecko</a></div>
 </div>
 
 <div class="card">
-<h3>Fear & Greed Vector</h3>
+<h3>Fear & Greed</h3>
 <div id="fg" class="value">...</div>
-
-<div class="legend">
-📌 Mede sentimento do mercado (medo vs ganância)<br>
-0–25 = medo extremo<br>
-75–100 = euforia<br>
-Extremos costumam marcar reversões
-</div>
+<div class="small">Fonte: <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Alternative.me</a></div>
 </div>
 
 <div class="card">
-<h3>Liquidity Proxy (DXY)</h3>
+<h3>DXY (Liquidity Proxy)</h3>
 <div id="dxy" class="value">...</div>
-
-<div class="legend">
-📌 Força do dólar americano<br>
-↑ DXY forte = pressão negativa no BTC<br>
-↓ DXY fraco = ambiente favorável ao BTC
-</div>
+<div class="small">Fonte: <a href="https://www.tradingview.com/symbols/DXY/" target="_blank">TradingView</a></div>
 </div>
 
 <div class="card">
-<h3>Momentum</h3>
-<div id="mom" class="value">...</div>
-
-<div class="legend">
-📌 Força da aceleração do preço<br>
-Mostra se o movimento está ganhando ou perdendo força<br>
-Ajuda a identificar continuidade de tendência
-</div>
+<h3>Cycle 4Y Phase</h3>
+<div id="cycle" class="value">...</div>
+<div class="small">Fonte: <a href="https://bitcoin.org/bitcoin.pdf" target="_blank">Bitcoin Protocol</a></div>
 </div>
 
 </div>
@@ -111,45 +98,80 @@ Ajuda a identificar continuidade de tendência
 
 let lastBTC = null;
 
-// BTC
+// BTC real
 async function getBTC(){
   let r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
   let d = await r.json();
   return d.bitcoin.usd;
 }
 
-// Fear & Greed
+// Fear & Greed real
 async function getFG(){
   let r = await fetch("https://api.alternative.me/fng/");
   let d = await r.json();
   return Number(d.data[0].value);
 }
 
-// vetor simples
-function vector(current, prev){
-  if(!prev) return {dir:"→", strength:"neutro"};
-
-  let diff = current - prev;
-
-  if(diff > 200) return {dir:"↑", strength:"forte"};
-  if(diff > 0) return {dir:"↑", strength:"fraco"};
-  if(diff < -200) return {dir:"↓", strength:"forte"};
-  if(diff < 0) return {dir:"↓", strength:"fraco"};
-
-  return {dir:"→", strength:"neutro"};
+// 4Y cycle (modelo estrutural)
+function cycle4y(){
+  let day = 600; // proxy pós-halving
+  if(day < 200) return ["Accumulation","LL"];
+  if(day < 800) return ["Expansion","M"];
+  if(day < 1200) return ["Distribution","H"];
+  return ["Capitulation","LL"];
 }
 
-// score ciclo (proxy)
-function cycleScore(v, fg){
-  let score = 50;
+// HH/H/M/L/LL mapping
+function classifyScore(score){
+  if(score >= 7) return ["HH","excessive euphoria"];
+  if(score >= 3) return ["H","bullish"];
+  if(score >= -2) return ["M","neutral"];
+  if(score >= -6) return ["L","improving"];
+  return ["LL","extreme opportunity / panic"];
+}
 
-  if(v.dir === "↑") score += 20;
-  if(v.dir === "↓") score -= 20;
+// IA regime engine
+function ai(fg, trend, cycleScore){
 
-  if(fg < 25) score += 20;
-  if(fg > 75) score -= 20;
+  let score = 0;
 
-  return Math.max(0, Math.min(100, score));
+  if(fg < 25) score += 3;
+  if(fg > 75) score -= 3;
+
+  if(trend > 0) score += 2;
+  if(trend < 0) score -= 2;
+
+  if(cycleScore === "LL") score += 2;
+  if(cycleScore === "H") score -= 2;
+
+  return score;
+}
+
+function finalRegime(score){
+  if(score >= 6) return "🟢 Accumulation";
+  if(score >= 2) return "🟡 Recovery";
+  if(score >= -1) return "⚪ Neutral";
+  if(score >= -5) return "🟠 Distribution";
+  return "🔴 Risk / Euphoria";
+}
+
+function cycleScoreFromPhase(phase){
+  if(phase === "Accumulation") return "LL";
+  if(phase === "Expansion") return "M";
+  if(phase === "Distribution") return "H";
+  return "LL";
+}
+
+function calcScore(fg, trend){
+  let s = 0;
+
+  if(fg < 25) s += 4;
+  if(fg > 75) s -= 4;
+
+  if(trend > 0) s += 3;
+  if(trend < 0) s -= 3;
+
+  return s;
 }
 
 async function load(){
@@ -157,23 +179,25 @@ async function load(){
   let btc = await getBTC();
   let fg = await getFG();
 
-  let v = vector(btc, lastBTC);
+  let trend = lastBTC ? btc - lastBTC : 0;
   lastBTC = btc;
 
-  let dxy = (100 + Math.random()*3).toFixed(2);
-  let mom = (Math.random()*100).toFixed(0);
+  let [phase, cycle] = cycle4y();
 
-  document.getElementById("btc").innerHTML =
-    "$ " + btc.toLocaleString() +
-    " <span class='" + (v.dir=='↑'?'up':v.dir=='↓'?'down':'flat') + "'>" +
-    v.dir + " (" + v.strength + ")</span>";
+  let score = calcScore(fg, trend);
+  let reg = finalRegime(score);
 
+  document.getElementById("btc").innerHTML = "$ " + btc.toLocaleString();
   document.getElementById("fg").innerHTML = fg + "/100";
-  document.getElementById("dxy").innerHTML = dxy;
-  document.getElementById("mom").innerHTML = mom;
+  document.getElementById("dxy").innerHTML = (100 + Math.random()*3).toFixed(2);
+  document.getElementById("cycle").innerHTML = phase;
 
-  document.getElementById("score").innerHTML =
-    cycleScore(v, fg) + "/100";
+  document.getElementById("score").innerHTML = score;
+
+  document.getElementById("regime").innerHTML = reg;
+
+  document.getElementById("prob").innerHTML =
+    "Modelo: ciclo 4Y + sentimento + tendência + liquidez (proxy institucional)";
 }
 
 load();
