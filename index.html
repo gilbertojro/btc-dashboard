@@ -2,63 +2,110 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>BTC Dashboard</title>
+<title>BTC Macro Dashboard</title>
 
 <style>
-body { background:#0b0f14; color:white; font-family:Arial; text-align:center; }
-.card { background:#111827; margin:15px auto; padding:20px; width:300px; border-radius:10px; }
-h1 { color:#60a5fa; }
-.value { font-size:26px; font-weight:bold; }
+body { background:#0b0f14; color:white; font-family:Arial; text-align:center; margin:0; }
+h1 { color:#60a5fa; margin:20px; }
+.grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; padding:10px; }
+.card { background:#111827; padding:15px; border-radius:10px; }
+.value { font-size:22px; font-weight:bold; margin-top:5px; }
+.score { font-size:28px; color:#34d399; }
 </style>
 </head>
 
 <body>
 
-<h1>📊 BTC Dashboard</h1>
+<h1>📊 BTC Macro Dashboard</h1>
 
 <div class="card">
-<h2>Bitcoin</h2>
+<h2>Bitcoin Score</h2>
+<div id="score" class="score">...</div>
+</div>
+
+<div class="grid">
+
+<div class="card">
+<h3>BTC Price</h3>
 <div id="btc" class="value">...</div>
 </div>
 
 <div class="card">
-<h2>Fear & Greed</h2>
+<h3>Fear & Greed</h3>
 <div id="fear" class="value">...</div>
+</div>
+
+<div class="card">
+<h3>DXY</h3>
+<div id="dxy" class="value">...</div>
+</div>
+
+<div class="card">
+<h3>Gold (simulado)</h3>
+<div id="gold" class="value">...</div>
+</div>
+
+<div class="card">
+<h3>S&P 500 (simulado)</h3>
+<div id="spx" class="value">...</div>
+</div>
+
+<div class="card">
+<h3>BTC Dominance</h3>
+<div id="dom" class="value">...</div>
+</div>
+
 </div>
 
 <script>
 
-// BTC
-async function loadBTC(){
-  try{
-    let r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
-    let d = await r.json();
-    document.getElementById("btc").innerHTML =
-      "$ " + d.bitcoin.usd.toLocaleString();
-  } catch(e){
-    document.getElementById("btc").innerHTML = "erro API";
-  }
+// BTC real
+async function btc(){
+  let r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
+  let d = await r.json();
+  return d.bitcoin.usd;
 }
 
 // Fear & Greed
-async function loadFear(){
-  try{
-    let r = await fetch("https://api.alternative.me/fng/");
-    let d = await r.json();
-    document.getElementById("fear").innerHTML =
-      d.data[0].value + " / 100";
-  } catch(e){
-    document.getElementById("fear").innerHTML = "erro API";
-  }
+async function fear(){
+  let r = await fetch("https://api.alternative.me/fng/");
+  let d = await r.json();
+  return Number(d.data[0].value);
 }
 
-loadBTC();
-loadFear();
+// indicadores fake (até plugar APIs depois)
+function fake(){
+  return {
+    dxy: (100 + Math.random()*5).toFixed(2),
+    gold: (2000 + Math.random()*50).toFixed(2),
+    spx: (4800 + Math.random()*100).toFixed(2),
+    dom: (50 + Math.random()*5).toFixed(2)
+  };
+}
 
-setInterval(() => {
-  loadBTC();
-  loadFear();
-}, 60000);
+// score simples
+function calcScore(fg){
+  return Math.max(0, 100 - fg);
+}
+
+async function load(){
+  let price = await btc();
+  let fg = await fear();
+  let f = fake();
+
+  document.getElementById("btc").innerHTML = "$ " + price.toLocaleString();
+  document.getElementById("fear").innerHTML = fg + " / 100";
+
+  document.getElementById("dxy").innerHTML = f.dxy;
+  document.getElementById("gold").innerHTML = f.gold;
+  document.getElementById("spx").innerHTML = f.spx;
+  document.getElementById("dom").innerHTML = f.dom;
+
+  document.getElementById("score").innerHTML = calcScore(fg) + " / 100";
+}
+
+load();
+setInterval(load, 60000);
 
 </script>
 
