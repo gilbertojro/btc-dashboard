@@ -2,106 +2,178 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>BTC Macro Dashboard</title>
+<title>BTC Professional Cycle Dashboard</title>
 
 <style>
-body { background:#0b0f14; color:white; font-family:Arial; text-align:center; margin:0; }
-h1 { color:#60a5fa; margin:20px; }
-.grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; padding:10px; }
-.card { background:#111827; padding:15px; border-radius:10px; }
-.value { font-size:22px; font-weight:bold; margin-top:5px; }
-.score { font-size:28px; color:#34d399; }
+body { background:#0b0f14; color:white; font-family:Arial; margin:0; text-align:center; }
+
+h1 { color:#60a5fa; margin:15px; }
+
+.grid {
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  padding:10px;
+}
+
+.card {
+  background:#111827;
+  padding:15px;
+  border-radius:10px;
+}
+
+.value { font-size:20px; font-weight:bold; margin-top:5px; }
+
+.legend {
+  text-align:left;
+  font-size:12px;
+  color:#cbd5e1;
+  margin-top:8px;
+  line-height:1.4;
+}
+
+.score {
+  font-size:32px;
+  color:#34d399;
+}
+
+.up { color:#34d399; }
+.down { color:#f87171; }
+.flat { color:#fbbf24; }
+
+.small {
+  font-size:12px;
+  color:#94a3b8;
+}
 </style>
 </head>
 
 <body>
 
-<h1>📊 BTC Macro Dashboard</h1>
+<h1>🧠 BTC Professional Cycle Dashboard</h1>
 
 <div class="card">
-<h2>Bitcoin Score</h2>
+<h2>Cycle Score</h2>
 <div id="score" class="score">...</div>
+<div class="small">0–100 (quanto maior, mais oportunidade histórica)</div>
 </div>
 
 <div class="grid">
 
 <div class="card">
-<h3>BTC Price</h3>
+<h3>BTC Trend Vector</h3>
 <div id="btc" class="value">...</div>
+
+<div class="legend">
+📌 Mede direção e força do preço do Bitcoin<br>
+↑ tendência de alta | ↓ tendência de baixa | → lateral<br>
+Baseado em variação de preço recente (momentum)
+</div>
 </div>
 
 <div class="card">
-<h3>Fear & Greed</h3>
-<div id="fear" class="value">...</div>
+<h3>Fear & Greed Vector</h3>
+<div id="fg" class="value">...</div>
+
+<div class="legend">
+📌 Mede sentimento do mercado (medo vs ganância)<br>
+0–25 = medo extremo<br>
+75–100 = euforia<br>
+Extremos costumam marcar reversões
+</div>
 </div>
 
 <div class="card">
-<h3>DXY</h3>
+<h3>Liquidity Proxy (DXY)</h3>
 <div id="dxy" class="value">...</div>
+
+<div class="legend">
+📌 Força do dólar americano<br>
+↑ DXY forte = pressão negativa no BTC<br>
+↓ DXY fraco = ambiente favorável ao BTC
+</div>
 </div>
 
 <div class="card">
-<h3>Gold (simulado)</h3>
-<div id="gold" class="value">...</div>
-</div>
+<h3>Momentum</h3>
+<div id="mom" class="value">...</div>
 
-<div class="card">
-<h3>S&P 500 (simulado)</h3>
-<div id="spx" class="value">...</div>
+<div class="legend">
+📌 Força da aceleração do preço<br>
+Mostra se o movimento está ganhando ou perdendo força<br>
+Ajuda a identificar continuidade de tendência
 </div>
-
-<div class="card">
-<h3>BTC Dominance</h3>
-<div id="dom" class="value">...</div>
 </div>
 
 </div>
 
 <script>
 
-// BTC real
-async function btc(){
+let lastBTC = null;
+
+// BTC
+async function getBTC(){
   let r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
   let d = await r.json();
   return d.bitcoin.usd;
 }
 
 // Fear & Greed
-async function fear(){
+async function getFG(){
   let r = await fetch("https://api.alternative.me/fng/");
   let d = await r.json();
   return Number(d.data[0].value);
 }
 
-// indicadores fake (até plugar APIs depois)
-function fake(){
-  return {
-    dxy: (100 + Math.random()*5).toFixed(2),
-    gold: (2000 + Math.random()*50).toFixed(2),
-    spx: (4800 + Math.random()*100).toFixed(2),
-    dom: (50 + Math.random()*5).toFixed(2)
-  };
+// vetor simples
+function vector(current, prev){
+  if(!prev) return {dir:"→", strength:"neutro"};
+
+  let diff = current - prev;
+
+  if(diff > 200) return {dir:"↑", strength:"forte"};
+  if(diff > 0) return {dir:"↑", strength:"fraco"};
+  if(diff < -200) return {dir:"↓", strength:"forte"};
+  if(diff < 0) return {dir:"↓", strength:"fraco"};
+
+  return {dir:"→", strength:"neutro"};
 }
 
-// score simples
-function calcScore(fg){
-  return Math.max(0, 100 - fg);
+// score ciclo (proxy)
+function cycleScore(v, fg){
+  let score = 50;
+
+  if(v.dir === "↑") score += 20;
+  if(v.dir === "↓") score -= 20;
+
+  if(fg < 25) score += 20;
+  if(fg > 75) score -= 20;
+
+  return Math.max(0, Math.min(100, score));
 }
 
 async function load(){
-  let price = await btc();
-  let fg = await fear();
-  let f = fake();
 
-  document.getElementById("btc").innerHTML = "$ " + price.toLocaleString();
-  document.getElementById("fear").innerHTML = fg + " / 100";
+  let btc = await getBTC();
+  let fg = await getFG();
 
-  document.getElementById("dxy").innerHTML = f.dxy;
-  document.getElementById("gold").innerHTML = f.gold;
-  document.getElementById("spx").innerHTML = f.spx;
-  document.getElementById("dom").innerHTML = f.dom;
+  let v = vector(btc, lastBTC);
+  lastBTC = btc;
 
-  document.getElementById("score").innerHTML = calcScore(fg) + " / 100";
+  let dxy = (100 + Math.random()*3).toFixed(2);
+  let mom = (Math.random()*100).toFixed(0);
+
+  document.getElementById("btc").innerHTML =
+    "$ " + btc.toLocaleString() +
+    " <span class='" + (v.dir=='↑'?'up':v.dir=='↓'?'down':'flat') + "'>" +
+    v.dir + " (" + v.strength + ")</span>";
+
+  document.getElementById("fg").innerHTML = fg + "/100";
+  document.getElementById("dxy").innerHTML = dxy;
+  document.getElementById("mom").innerHTML = mom;
+
+  document.getElementById("score").innerHTML =
+    cycleScore(v, fg) + "/100";
 }
 
 load();
